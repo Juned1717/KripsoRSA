@@ -7,8 +7,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
 </head>
 <body class="bg-gray-100 p-6 font-sans">
+
   <!-- LOGIN -->
   <div id="login-screen" class="max-w-md mx-auto bg-white p-6 rounded shadow">
     <h2 class="text-xl font-bold mb-4 text-center">Login</h2>
@@ -21,11 +23,14 @@
   <div id="app" class="hidden max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-2xl font-bold">🔐 RSA QR Tool</h2>
-      <select id="menu" onchange="switchMenu()" class="border px-3 py-1 rounded">
-        <option value="encrypt">🔒 Enkripsi</option>
-        <option value="decrypt">🔓 Dekripsi</option>
-        <option value="ttd">✍️ Tanda Tangan Digital</option>
-      </select>
+      <div class="flex items-center gap-2">
+        <select id="menu" onchange="switchMenu()" class="border px-3 py-1 rounded">
+          <option value="encrypt">🔒 Enkripsi</option>
+          <option value="decrypt">🔓 Dekripsi</option>
+          <option value="ttd">📝 TTD</option>
+        </select>
+        <button onclick="logout()" class="text-red-600 font-semibold px-3 py-1 rounded border border-red-600 hover:bg-red-100">Logout</button>
+      </div>
     </div>
 
     <!-- RSA Keys -->
@@ -44,7 +49,7 @@
       </div>
     </div>
 
-    <!-- ENCRYPT MENU -->
+    <!-- ENCRYPT SECTION -->
     <div id="encrypt-section">
       <div class="mb-4">
         <label class="text-sm">Plaintext (ID Surat)</label>
@@ -57,7 +62,7 @@
       </div>
     </div>
 
-    <!-- DECRYPT MENU -->
+    <!-- DECRYPT SECTION -->
     <div id="decrypt-section" class="hidden">
       <div class="mb-4">
         <label class="text-sm font-semibold">📷 Scan QR dengan Kamera:</label>
@@ -65,12 +70,10 @@
         <video id="video" class="w-full mt-2 rounded border" autoplay></video>
         <canvas id="qr-canvas" class="hidden"></canvas>
       </div>
-
       <div class="mb-4">
         <label class="text-sm">Atau unggah gambar QR:</label>
         <input type="file" accept="image/*" onchange="scanQR(event)" class="block mt-2">
       </div>
-
       <div class="mb-4">
         <label class="text-sm">Ciphertext</label>
         <textarea id="ciphertextInput" rows="3" class="w-full border px-2 py-1 rounded"></textarea>
@@ -82,41 +85,44 @@
       </div>
     </div>
 
-    <!-- TTD MENU -->
+    <!-- TTD SECTION -->
     <div id="ttd-section" class="hidden">
       <div class="mb-4">
-        <label class="text-sm font-semibold">Upload Dokumen (txt):</label>
-        <input type="file" accept=".txt" id="docUpload" class="block mt-2" onchange="loadDocument(event)">
+        <label class="text-sm">Unggah dokumen (format bebas):</label>
+        <input type="file" id="ttd-file" accept=".pdf,.doc,.docx,.txt,.odt,.rtf,.html,.md" class="block mt-2 mb-4">
       </div>
-
       <div class="mb-4">
-        <label class="text-sm font-semibold">Upload QR Code (PNG/JPG):</label>
-        <input type="file" accept="image/*" id="qrUpload" class="block mt-2" onchange="loadQR(event)">
+        <label class="text-sm">Masukkan Ciphertext QR:</label>
+        <textarea id="ttd-cipher" rows="3" class="w-full border px-2 py-1 rounded"></textarea>
       </div>
-
-      <canvas id="ttd-canvas" class="border rounded w-full" style="max-height: 600px;"></canvas>
-
-      <button onclick="downloadSignedDoc()" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded w-full">⬇ Unduh Dokumen dengan QR Code</button>
+      <button onclick="generateSignedPDF()" class="bg-green-700 text-white px-4 py-2 rounded w-full">🖊️ Tambah QR & Unduh PDF</button>
     </div>
   </div>
 
   <!-- SCRIPT -->
   <script>
-    const USERS = {
-      "admin": "1234",
-      "user": "abcd"
-    };
-
+    const USERS = { "admin": "1234", "user": "abcd" };
     function login() {
       const u = document.getElementById("username").value;
       const p = document.getElementById("password").value;
       if (USERS[u] && USERS[u] === p) {
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("app").classList.remove("hidden");
+        localStorage.setItem("loggedIn", "true");
       } else {
         alert("Login gagal. Username/password salah.");
       }
     }
+    function logout() {
+      localStorage.removeItem("loggedIn");
+      location.reload();
+    }
+    window.onload = () => {
+      if (localStorage.getItem("loggedIn") === "true") {
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+      }
+    };
 
     function switchMenu() {
       const menu = document.getElementById("menu").value;
@@ -145,13 +151,11 @@
       const q = parseInt(document.getElementById("q").value);
       const e = parseInt(document.getElementById("e").value);
       if (!p || !q || !e) throw "Isi semua nilai p, q, dan e";
-
       const n = p * q;
       const phi = (p - 1) * (q - 1);
       if (gcd(e, phi) !== 1) throw "e tidak coprime dengan φ(n)";
       const d = modInverse(e, phi);
       if (d === null) throw "Invers modular tidak ditemukan";
-
       return { e: BigInt(e), d: BigInt(d), n: BigInt(n) };
     }
 
@@ -204,12 +208,10 @@
 
     let videoStream;
     let scanning = false;
-
     function startCamera() {
       const video = document.getElementById("video");
       const canvas = document.getElementById("qr-canvas");
       const ctx = canvas.getContext("2d");
-
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         .then(stream => {
           videoStream = stream;
@@ -217,7 +219,6 @@
           video.setAttribute("playsinline", true);
           video.play();
           scanning = true;
-
           requestAnimationFrame(function scanLoop() {
             if (!scanning) return;
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -238,11 +239,8 @@
         })
         .catch(err => alert("Gagal membuka kamera: " + err));
     }
-
     function stopCamera() {
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-      }
+      if (videoStream) videoStream.getTracks().forEach(track => track.stop());
     }
 
     function decrypt() {
@@ -259,85 +257,31 @@
       }
     }
 
-    // ==== TTD FUNCTIONS ====
-
-    let docTextLines = [];
-    let qrImage = null;
-
-    function loadDocument(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      if (file.type !== "text/plain") {
-        alert("Harap unggah file teks (.txt)!");
+    async function generateSignedPDF() {
+      const fileInput = document.getElementById("ttd-file");
+      const cipher = document.getElementById("ttd-cipher").value.trim();
+      if (!fileInput.files[0] || cipher === "") {
+        alert("Unggah file dan masukkan cipher terlebih dahulu.");
         return;
       }
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const text = e.target.result;
-        docTextLines = text.split(/\r?\n/);
-        drawTTDCanvas();
-      };
-      reader.readAsText(file);
-    }
 
-    function loadQR(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        qrImage = new Image();
-        qrImage.onload = () => {
-          drawTTDCanvas();
-        };
-        qrImage.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function drawTTDCanvas() {
-      const canvas = document.getElementById("ttd-canvas");
-      const ctx = canvas.getContext("2d");
-
-      // Setup canvas width & height based on text lines & QR size
-      const lineHeight = 20;
-      const padding = 20;
-      const qrSize = qrImage ? 150 : 0;
-
-      // Width: max between 600 and QR width + padding
-      canvas.width = 600;
-      canvas.height = padding * 2 + lineHeight * docTextLines.length + qrSize + 10;
-
-      // Clear canvas
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw text lines
-      ctx.fillStyle = "#000";
-      ctx.font = "16px monospace";
-      for(let i=0; i<docTextLines.length; i++) {
-        ctx.fillText(docTextLines[i], padding, padding + lineHeight * (i+1));
-      }
-
-      // Draw QR code below text, centered horizontally
-      if (qrImage) {
-        ctx.drawImage(qrImage, (canvas.width - qrSize)/2, padding + lineHeight * docTextLines.length + 10, qrSize, qrSize);
-      }
-    }
-
-    function downloadSignedDoc() {
-      const canvas = document.getElementById("ttd-canvas");
-      if (!docTextLines.length) {
-        alert("Harap unggah dokumen terlebih dahulu.");
-        return;
-      }
-      if (!qrImage) {
-        alert("Harap unggah QR Code terlebih dahulu.");
-        return;
-      }
-      const link = document.createElement("a");
-      link.download = "dokumen_signed.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      const canvas = document.createElement("canvas");
+      await QRCode.toCanvas(canvas, cipher);
+      const { PDFDocument } = PDFLib;
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([595.28, 841.89]);
+      const pngImage = await pdfDoc.embedPng(canvas.toDataURL("image/png"));
+      const pngDims = pngImage.scale(0.5);
+      page.drawText("QR Code TTD:", { x: 50, y: 750, size: 18 });
+      page.drawImage(pngImage, { x: 50, y: 500, width: pngDims.width, height: pngDims.height });
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dokumen_ttd.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>
