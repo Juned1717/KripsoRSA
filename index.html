@@ -24,6 +24,7 @@
       <select id="menu" onchange="switchMenu()" class="border px-3 py-1 rounded">
         <option value="encrypt">🔒 Enkripsi</option>
         <option value="decrypt">🔓 Dekripsi</option>
+        <option value="ttd">✍️ Tanda Tangan Digital</option>
       </select>
     </div>
 
@@ -80,6 +81,23 @@
         <textarea id="decryptedText" rows="2" class="w-full border px-2 py-1 rounded bg-gray-100" readonly></textarea>
       </div>
     </div>
+
+    <!-- TTD MENU -->
+    <div id="ttd-section" class="hidden">
+      <div class="mb-4">
+        <label class="text-sm font-semibold">Upload Dokumen (txt):</label>
+        <input type="file" accept=".txt" id="docUpload" class="block mt-2" onchange="loadDocument(event)">
+      </div>
+
+      <div class="mb-4">
+        <label class="text-sm font-semibold">Upload QR Code (PNG/JPG):</label>
+        <input type="file" accept="image/*" id="qrUpload" class="block mt-2" onchange="loadQR(event)">
+      </div>
+
+      <canvas id="ttd-canvas" class="border rounded w-full" style="max-height: 600px;"></canvas>
+
+      <button onclick="downloadSignedDoc()" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded w-full">⬇ Unduh Dokumen dengan QR Code</button>
+    </div>
   </div>
 
   <!-- SCRIPT -->
@@ -104,6 +122,7 @@
       const menu = document.getElementById("menu").value;
       document.getElementById("encrypt-section").classList.toggle("hidden", menu !== "encrypt");
       document.getElementById("decrypt-section").classList.toggle("hidden", menu !== "decrypt");
+      document.getElementById("ttd-section").classList.toggle("hidden", menu !== "ttd");
     }
 
     function gcd(a, b) {
@@ -238,6 +257,87 @@
       } catch (err) {
         alert("Gagal dekripsi: " + err);
       }
+    }
+
+    // ==== TTD FUNCTIONS ====
+
+    let docTextLines = [];
+    let qrImage = null;
+
+    function loadDocument(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.type !== "text/plain") {
+        alert("Harap unggah file teks (.txt)!");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        docTextLines = text.split(/\r?\n/);
+        drawTTDCanvas();
+      };
+      reader.readAsText(file);
+    }
+
+    function loadQR(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        qrImage = new Image();
+        qrImage.onload = () => {
+          drawTTDCanvas();
+        };
+        qrImage.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function drawTTDCanvas() {
+      const canvas = document.getElementById("ttd-canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Setup canvas width & height based on text lines & QR size
+      const lineHeight = 20;
+      const padding = 20;
+      const qrSize = qrImage ? 150 : 0;
+
+      // Width: max between 600 and QR width + padding
+      canvas.width = 600;
+      canvas.height = padding * 2 + lineHeight * docTextLines.length + qrSize + 10;
+
+      // Clear canvas
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw text lines
+      ctx.fillStyle = "#000";
+      ctx.font = "16px monospace";
+      for(let i=0; i<docTextLines.length; i++) {
+        ctx.fillText(docTextLines[i], padding, padding + lineHeight * (i+1));
+      }
+
+      // Draw QR code below text, centered horizontally
+      if (qrImage) {
+        ctx.drawImage(qrImage, (canvas.width - qrSize)/2, padding + lineHeight * docTextLines.length + 10, qrSize, qrSize);
+      }
+    }
+
+    function downloadSignedDoc() {
+      const canvas = document.getElementById("ttd-canvas");
+      if (!docTextLines.length) {
+        alert("Harap unggah dokumen terlebih dahulu.");
+        return;
+      }
+      if (!qrImage) {
+        alert("Harap unggah QR Code terlebih dahulu.");
+        return;
+      }
+      const link = document.createElement("a");
+      link.download = "dokumen_signed.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
     }
   </script>
 </body>
