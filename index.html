@@ -332,10 +332,10 @@
     }
 
   function addDocument() {
-  const id = document.getElementById("doc-id").value.trim();
-  const nama = document.getElementById("doc-nama").value.trim();
+  const id = document.getElementById("doc-id").value;
+  const nama = document.getElementById("doc-nama").value;
   const tanggal = document.getElementById("doc-tanggal").value;
-  const keterangan = document.getElementById("doc-keterangan").value.trim();
+  const keterangan = document.getElementById("doc-keterangan").value;
   const fileInput = document.getElementById("doc-file");
 
   // Validasi sederhana
@@ -345,7 +345,7 @@
   }
 
   const file = fileInput.files[0];
-  const fileURL = URL.createObjectURL(file); // Menyimpan URL sementara untuk ditampilkan
+  const fileURL = URL.createObjectURL(file);
 
   const documentData = { id, nama, tanggal, keterangan, file: fileURL };
   documents.push(documentData);
