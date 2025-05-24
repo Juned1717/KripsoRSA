@@ -104,7 +104,7 @@
   <!-- DATA SECTION -->
   <div id="data-section" class="hidden p-4 border rounded">
     <h3 class="font-semibold mb-4 text-lg">📄 Input Data Dokumen</h3>
-      <form id="document-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form id="document-form" onsubmit="addDocument(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input type="text" id="doc-id" placeholder="ID Dokumen" class="border px-3 py-2 rounded" required />
         <input type="text" id="doc-nama" placeholder="Nama Penandatangan" class="border px-3 py-2 rounded" required />
         <input type="date" id="doc-tanggal" class="border px-3 py-2 rounded" required />
@@ -176,6 +176,10 @@
       // RSA keys hanya tampil di encrypt & decrypt
       const rsaKeys = document.getElementById("rsa-keys");
       rsaKeys.classList.toggle("hidden", !(menu === "encrypt" || menu === "decrypt"));
+
+      if (menu === "verifikasi") {
+      renderVerificationTable();
+      }
     }
 
     function gcd(a, b) {
@@ -332,11 +336,12 @@
     }
 
   function addDocument() {
-  const id = document.getElementById("doc-id").value;
-  const nama = document.getElementById("doc-nama").value;
-  const tanggal = document.getElementById("doc-tanggal").value;
-  const keterangan = document.getElementById("doc-keterangan").value;
-  const fileInput = document.getElementById("doc-file");
+    event.preventDefault(); // Cegah reload
+    const id = document.getElementById("doc-id").value;
+    const nama = document.getElementById("doc-nama").value;
+    const tanggal = document.getElementById("doc-tanggal").value;
+    const keterangan = document.getElementById("doc-keterangan").value;
+    const fileInput = document.getElementById("doc-file");
 
   // Validasi sederhana
   if (!id || !nama || !tanggal || !keterangan || fileInput.files.length === 0) {
@@ -347,16 +352,16 @@
   const file = fileInput.files[0];
   const fileURL = URL.createObjectURL(file);
 
-  const documentData = { id, nama, tanggal, keterangan, file: fileURL };
-  documents.push(documentData);
-  renderVerificationTable(); // WAJIB ada ini
+  documents.push({ id, nama, tanggal, keterangan, file: file.name, url: fileURL });
+  renderVerificationTable(); // tampilkan ke tabel
+  document.getElementById("document-form").reset(); // reset form
 
-  alert("Dokumen berhasil ditambahkan.");
-  document.getElementById("doc-id").value = "";
-  document.getElementById("doc-nama").value = "";
-  document.getElementById("doc-tanggal").value = "";
-  document.getElementById("doc-keterangan").value = "";
-  fileInput.value = "";
+  // alert("Dokumen berhasil ditambahkan.");
+  // document.getElementById("doc-id").value = "";
+  // document.getElementById("doc-nama").value = "";
+  // document.getElementById("doc-tanggal").value = "";
+  // document.getElementById("doc-keterangan").value = "";
+  // fileInput.value = "";
   }
 
   function deleteDocument(index) {
@@ -365,28 +370,20 @@
   }
 
   function renderVerificationTable() {
-  const tableBody = document.getElementById("verify-table-body");
-  tableBody.innerHTML = ""; // Kosongkan tabel terlebih dahulu
-
-  documents.forEach((doc, index) => {
+  const tbody = document.getElementById("verify-table-body");
+  tbody.innerHTML = "";
+  documents.forEach(doc => {
     const row = document.createElement("tr");
-    row.classList.add("border");
-
     row.innerHTML = `
-      <td class="border px-4 py-2">${index + 1}</td>
-      <td class="border px-4 py-2">${doc.id}</td>
-      <td class="border px-4 py-2">${doc.nama}</td>
-      <td class="border px-4 py-2">${doc.tanggal}</td>
-      <td class="border px-4 py-2">${doc.keterangan}</td>
-      <td class="border px-4 py-2">
-        <a href="${doc.file}" target="_blank" class="text-blue-600 underline">Lihat File</a>
-      </td>
-      <td class="border px-4 py-2">
-        <button onclick="deleteDocument(${index})" class="text-red-600 underline">Hapus</button>
-      </td>
+      <td class="border p-2">${doc.id}</td>
+      <td class="border p-2">${doc.nama}</td>
+      <td class="border p-2">${doc.tanggal}</td>
+      <td class="border p-2">${doc.keterangan}</td>
+      <td class="border p-2"><a href="${doc.url}" target="_blank">${doc.file}</a></td>
+      <td class="border p-2"><button class="bg-blue-500 text-white px-2 py-1 rounded">Verifikasi</button></td>
     `;
-    tableBody.appendChild(row);
-    });
+    tbody.appendChild(row);
+  });
   }
     
   function searchDocuments() {
