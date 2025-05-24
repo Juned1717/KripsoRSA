@@ -534,14 +534,16 @@
   </script>
 
 <script>
-  // Render halaman login saat pertama kali halaman dibuka
-  window.addEventListener('DOMContentLoaded', () => {
+  // ... semua fungsi JavaScript Anda di sini ...
+
+  // Tambahkan baris ini di akhir script Anda:
+  window.onload = () => {
     if (getLoggedInUser()) {
-      renderIndex(); // Jika sudah login, langsung ke halaman utama
+      renderIndex();
     } else {
-      renderLogin(); // Jika belum, tampilkan login
+      renderLogin();
     }
-  });
+  };
 </script>
   
 </body>
