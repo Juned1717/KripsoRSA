@@ -1,36 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RSA Encryption with QR Code</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>RSA Encryption and QR Code Generator</h2>
+<body class="bg-gray-100 font-sans">
+  <div class="max-w-2xl mx-auto p-6 mt-8 bg-white rounded-xl shadow-md">
+    <h2 class="text-2xl font-bold mb-4 text-center">RSA Encryption & QR Code</h2>
 
-  <button onclick="generateKeys()">Generate RSA Keys</button><br><br>
-  <label>p (prime):</label>
-  <input type="text" id="p" readonly><br>
-  <label>q (prime):</label>
-  <input type="text" id="q" readonly><br>
-  <label>n (p*q):</label>
-  <input type="text" id="n" readonly><br>
-  <label>e (public exponent):</label>
-  <input type="text" id="e" readonly><br>
-  <label>d (private exponent):</label>
-  <input type="text" id="d" readonly><br>
+    <button onclick="generateKeys()" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Generate RSA Keys</button>
 
-  <br><hr><br>
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div>
+        <label class="block text-sm">p (prime):</label>
+        <input type="text" id="p" class="w-full border px-2 py-1 rounded" readonly>
+      </div>
+      <div>
+        <label class="block text-sm">q (prime):</label>
+        <input type="text" id="q" class="w-full border px-2 py-1 rounded" readonly>
+      </div>
+      <div>
+        <label class="block text-sm">n (p*q):</label>
+        <input type="text" id="n" class="w-full border px-2 py-1 rounded" readonly>
+      </div>
+      <div>
+        <label class="block text-sm">e (public exponent):</label>
+        <input type="text" id="e" class="w-full border px-2 py-1 rounded" readonly>
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm">d (private exponent):</label>
+        <input type="text" id="d" class="w-full border px-2 py-1 rounded" readonly>
+      </div>
+    </div>
 
-  <label>Plaintext (ID Surat):</label>
-  <input type="text" id="plaintext" value="SERTIFIKAT/012/24052025/IGUSTIAYUSRI_BIDANGPENGMAS"><br>
-  <button onclick="encrypt()">Encrypt</button><br><br>
+    <label class="block text-sm mb-1">Plaintext (ID Surat):</label>
+    <input type="text" id="plaintext" value="SERTIFIKAT/012/24052025/IGUSTIAYUSRI_BIDANGPENGMAS" class="w-full border px-2 py-1 rounded mb-3">
 
-  <label>Ciphertext:</label>
-  <textarea id="ciphertext" rows="4" cols="50" readonly></textarea><br>
+    <button onclick="encrypt()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 mb-4">Encrypt</button>
 
-  <div id="qrcode"></div>
+    <label class="block text-sm mb-1">Ciphertext:</label>
+    <textarea id="ciphertext" rows="4" class="w-full border px-2 py-2 rounded mb-4" readonly></textarea>
+
+    <div class="text-center">
+      <div id="qrcode" class="inline-block p-2 bg-white rounded shadow-md"></div>
+    </div>
+  </div>
 
   <script>
     function isPrime(n) {
@@ -66,7 +83,7 @@
         let q = Math.floor(b / e);
         [a, b, u, e] = [u, e, a - q * u, b - q * e];
       }
-      if (b !== 1) return null; // No inverse
+      if (b !== 1) return null;
       return (a + phi) % phi;
     }
 
