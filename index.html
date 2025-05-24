@@ -1,0 +1,536 @@
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aplikasi RSA Tanda Tangan Digital</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <style>
+    /* Custom scrollbar for better UX */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #4f46e5;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e0e7ff;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- Main container for SPA -->
+  <div id="app" class="flex-grow flex flex-col justify-center items-center p-4 max-w-4xl mx-auto w-full">
+    <!-- Content will be injected here -->
+  </div>
+
+  <script>
+    // SPA pages: register, login, index (main app)
+    const app = document.getElementById('app');
+
+    // Utility: Validate email format
+    function validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email.toLowerCase());
+    }
+
+    // Utility: Check if string is prime number
+    function isPrime(num) {
+      if (num <= 1) return false;
+      if (num <= 3) return true;
+      if (num % 2 === 0 || num % 3 === 0) return false;
+      for (let i = 5; i * i <= num; i += 6) {
+        if (num % i === 0 || num % (i + 2) === 0) return false;
+      }
+      return true;
+    }
+
+    // Utility: Extended Euclidean Algorithm for modular inverse
+    function egcd(a, b) {
+      if (b === 0) return {g: a, x: 1, y: 0};
+      const {g, x: x1, y: y1} = egcd(b, a % b);
+      return {g, x: y1, y: x1 - Math.floor(a / b) * y1};
+    }
+    function modInverse(e, phi) {
+      const {g, x} = egcd(e, phi);
+      if (g !== 1) return null; // No modular inverse if gcd != 1
+      return (x % phi + phi) % phi;
+    }
+
+    // Utility: Convert string block to number (base 256)
+    function blockToNumber(block) {
+      let num = 0;
+      for (let i = 0; i < block.length; i++) {
+        num = num * 256 + block.charCodeAt(i);
+      }
+      return num;
+    }
+
+    // Utility: Convert number back to string block (base 256)
+    function numberToBlock(num, blockSize) {
+      let chars = [];
+      for (let i = 0; i < blockSize; i++) {
+        chars.unshift(String.fromCharCode(num % 256));
+        num = Math.floor(num / 256);
+      }
+      return chars.join('');
+    }
+
+    // RSA encrypt a number block: c = m^e mod n
+    function modPow(base, exponent, modulus) {
+      if (modulus === 1) return 0;
+      let result = 1n;
+      let b = BigInt(base);
+      let e = BigInt(exponent);
+      let m = BigInt(modulus);
+      while (e > 0) {
+        if (e % 2n === 1n) result = (result * b) % m;
+        e = e / 2n;
+        b = (b * b) % m;
+      }
+      return result;
+    }
+
+    // Save user to localStorage
+    function saveUser(user) {
+      let users = JSON.parse(localStorage.getItem('users') || '[]');
+      users.push(user);
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    // Find user by username or email
+    function findUser(identifier) {
+      let users = JSON.parse(localStorage.getItem('users') || '[]');
+      return users.find(
+        (u) =>
+          u.username.toLowerCase() === identifier.toLowerCase() ||
+          u.email.toLowerCase() === identifier.toLowerCase()
+      );
+    }
+
+    // Save logged in user
+    function setLoggedInUser(username) {
+      localStorage.setItem('loggedInUser', username);
+    }
+    function getLoggedInUser() {
+      return localStorage.getItem('loggedInUser');
+    }
+    function logoutUser() {
+      localStorage.removeItem('loggedInUser');
+    }
+
+    // Render Register Page
+    function renderRegister() {
+      app.innerHTML = `
+        <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+          <h2 class="text-2xl font-semibold mb-6 text-center text-indigo-600">Register Akun Baru</h2>
+          <form id="registerForm" class="space-y-5">
+            <div>
+              <label for="username" class="block text-gray-700 font-medium mb-1">Username</label>
+              <input type="text" id="username" name="username" required minlength="3" maxlength="20" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label for="email" class="block text-gray-700 font-medium mb-1">Email</label>
+              <input type="email" id="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label for="password" class="block text-gray-700 font-medium mb-1">Password</label>
+              <input type="password" id="password" name="password" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition">Daftar</button>
+          </form>
+          <p class="mt-4 text-center text-gray-600">
+            Sudah punya akun?
+            <button id="toLogin" class="text-indigo-600 hover:underline font-semibold">Login di sini</button>
+          </p>
+        </div>
+      `;
+
+      document.getElementById('toLogin').addEventListener('click', () => {
+        renderLogin();
+      });
+
+      document.getElementById('registerForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = e.target.username.value.trim();
+        const email = e.target.email.value.trim();
+        const password = e.target.password.value;
+
+        if (!validateEmail(email)) {
+          alert('Email tidak valid.');
+          return;
+        }
+        if (username.length < 3) {
+          alert('Username minimal 3 karakter.');
+          return;
+        }
+        if (password.length < 6) {
+          alert('Password minimal 6 karakter.');
+          return;
+        }
+
+        if (findUser(username) || findUser(email)) {
+          alert('Username atau email sudah terdaftar.');
+          return;
+        }
+
+        saveUser({ username, email, password });
+        alert('Registrasi berhasil! Silakan login.');
+        renderLogin();
+      });
+    }
+
+    // Render Login Page
+    function renderLogin() {
+      app.innerHTML = `
+        <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+          <h2 class="text-2xl font-semibold mb-6 text-center text-indigo-600">Login Akun</h2>
+          <form id="loginForm" class="space-y-5">
+            <div>
+              <label for="identifier" class="block text-gray-700 font-medium mb-1">Username atau Email</label>
+              <input type="text" id="identifier" name="identifier" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label for="password" class="block text-gray-700 font-medium mb-1">Password</label>
+              <input type="password" id="password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition">Login</button>
+          </form>
+          <p class="mt-4 text-center text-gray-600">
+            Belum punya akun?
+            <button id="toRegister" class="text-indigo-600 hover:underline font-semibold">Daftar di sini</button>
+          </p>
+        </div>
+      `;
+
+      document.getElementById('toRegister').addEventListener('click', () => {
+        renderRegister();
+      });
+
+      document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const identifier = e.target.identifier.value.trim();
+        const password = e.target.password.value;
+
+        const user = findUser(identifier);
+        if (!user) {
+          alert('Pengguna tidak ditemukan.');
+          return;
+        }
+        if (user.password !== password) {
+          alert('Password salah.');
+          return;
+        }
+        setLoggedInUser(user.username);
+        renderIndex();
+      });
+    }
+
+    // Render Main RSA App Page
+    function renderIndex() {
+      const username = getLoggedInUser();
+      if (!username) {
+        renderLogin();
+        return;
+      }
+
+      app.innerHTML = `
+        <div class="w-full max-w-5xl bg-white rounded-lg shadow-lg p-6 flex flex-col md:flex-row gap-6">
+          <div class="md:w-1/2 flex flex-col space-y-4">
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-semibold text-indigo-600">Selamat datang, <span class="capitalize">${username}</span></h2>
+              <button id="logoutBtn" title="Logout" class="text-red-600 hover:text-red-800 transition text-lg"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+
+            <form id="rsaForm" class="space-y-4">
+              <div>
+                <label for="fileInput" class="block text-gray-700 font-medium mb-1">Pilih File (Nama file akan dienkripsi)</label>
+                <input type="file" id="fileInput" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+
+              <div>
+                <label for="inputText" class="block text-gray-700 font-medium mb-1">Atau Masukkan Teks</label>
+                <textarea id="inputText" rows="3" placeholder="Masukkan teks atau pilih file" class="w-full border border-gray-300 rounded-md p-2 resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+              </div>
+
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <label for="p" class="block text-gray-700 font-medium mb-1">Bilangan Prima p</label>
+                  <input type="number" id="p" min="2" max="100000" required class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+                <div>
+                  <label for="q" class="block text-gray-700 font-medium mb-1">Bilangan Prima q</label>
+                  <input type="number" id="q" min="2" max="100000" required class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+                <div>
+                  <label for="e" class="block text-gray-700 font-medium mb-1">Eksponen e</label>
+                  <input type="number" id="e" min="2" max="100000" required class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-3 justify-between">
+                <button type="button" id="encryptBtn" class="flex-1 bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition flex items-center justify-center gap-2"><i class="fas fa-lock"></i> ENKRIPSI</button>
+                <button type="button" id="decryptBtn" class="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition flex items-center justify-center gap-2"><i class="fas fa-lock-open"></i> DEKRIPSI</button>
+                <button type="button" id="resetBtn" class="flex-1 bg-gray-400 text-gray-900 py-2 rounded-md hover:bg-gray-500 transition flex items-center justify-center gap-2"><i class="fas fa-redo"></i> UBAH</button>
+                <button type="button" id="exitBtn" class="flex-1 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition flex items-center justify-center gap-2"><i class="fas fa-sign-out-alt"></i> EXIT</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="md:w-1/2 flex flex-col space-y-4">
+            <div>
+              <label for="outputCiphertext" class="block text-gray-700 font-medium mb-1">Output Ciphertext (Blok Enkripsi dalam angka, dipisah spasi)</label>
+              <textarea id="outputCiphertext" rows="6" readonly class="w-full border border-gray-300 rounded-md p-2 resize-y bg-gray-100"></textarea>
+            </div>
+
+            <div class="flex flex-col items-center">
+              <label class="block text-gray-700 font-medium mb-2">Barcode Hasil Enkripsi</label>
+              <svg id="barcode" class="border border-gray-300 rounded-md p-2 bg-white w-full max-w-md" aria-label="Barcode hasil enkripsi"></svg>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Event Listeners
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        logoutUser();
+        renderLogin();
+      });
+
+      const fileInput = document.getElementById('fileInput');
+      const inputText = document.getElementById('inputText');
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+          inputText.value = fileInput.files[0].name;
+        }
+      });
+
+      document.getElementById('encryptBtn').addEventListener('click', () => {
+        encryptHandler();
+      });
+
+      document.getElementById('decryptBtn').addEventListener('click', () => {
+        decryptHandler();
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        resetAll();
+      });
+
+      document.getElementById('exitBtn').addEventListener('click', () => {
+        if (confirm('Apakah Anda yakin ingin keluar dari aplikasi?')) {
+          try {
+            window.close();
+          } catch {
+            alert('Tidak dapat menutup jendela secara otomatis. Silakan tutup secara manual.');
+          }
+        }
+      });
+    }
+
+    // Reset all inputs and outputs
+    function resetAll() {
+      document.getElementById('fileInput').value = '';
+      document.getElementById('inputText').value = '';
+      document.getElementById('p').value = '';
+      document.getElementById('q').value = '';
+      document.getElementById('e').value = '';
+      document.getElementById('outputCiphertext').value = '';
+      JsBarcode('#barcode', '', {format: 'CODE128', lineColor: '#4f46e5', width: 2, height: 80, displayValue: false});
+    }
+
+    // Encrypt handler
+    function encryptHandler() {
+      const p = parseInt(document.getElementById('p').value);
+      const q = parseInt(document.getElementById('q').value);
+      const e = parseInt(document.getElementById('e').value);
+      let plaintext = document.getElementById('inputText').value;
+
+      if (!p || !q || !e) {
+        alert('Bilangan prima p, q dan eksponen e harus diisi.');
+        return;
+      }
+      if (!isPrime(p)) {
+        alert('p bukan bilangan prima.');
+        return;
+      }
+      if (!isPrime(q)) {
+        alert('q bukan bilangan prima.');
+        return;
+      }
+      if (e <= 1) {
+        alert('Eksponen e harus lebih besar dari 1.');
+        return;
+      }
+      if (!plaintext || plaintext.trim().length === 0) {
+        alert('Masukkan teks atau pilih file terlebih dahulu.');
+        return;
+      }
+
+      const n = BigInt(p) * BigInt(q);
+      const phi = BigInt(p - 1) * BigInt(q - 1);
+
+      if (BigInt(e) >= phi) {
+        alert('Eksponen e harus lebih kecil dari phi(n).');
+        return;
+      }
+
+      // Check gcd(e, phi) == 1
+      function gcd(a, b) {
+        while (b != 0) {
+          let t = b;
+          b = a % b;
+          a = t;
+        }
+        return a;
+      }
+      if (gcd(e, Number(phi)) !== 1) {
+        alert('Eksponen e harus coprime dengan phi(n).');
+        return;
+      }
+
+      // Tentukan block size (2-4) berdasarkan n
+      // Maksimum nilai blok < n, jadi cari block size terbesar yang bisa
+      // Kita coba block size 4, 3, 2, 1 (fallback)
+      let blockSize = 4;
+      while (blockSize > 1) {
+        // Max number for blockSize chars = 256^blockSize - 1
+        const maxBlockValue = BigInt(256) ** BigInt(blockSize) - 1n;
+        if (maxBlockValue < n) break;
+        blockSize--;
+      }
+      if (blockSize === 1) {
+        alert('Nilai n terlalu kecil untuk blok minimal 2 karakter.');
+        return;
+      }
+
+      // Bagi plaintext menjadi blok
+      let blocks = [];
+      for (let i = 0; i < plaintext.length; i += blockSize) {
+        blocks.push(plaintext.substring(i, i + blockSize));
+      }
+
+      // Konversi blok ke angka dan enkripsi
+      let ciphertextBlocks = [];
+      for (const block of blocks) {
+        const m = BigInt(blockToNumber(block));
+        if (m >= n) {
+          alert(Blok "${block}" terlalu besar untuk dienkripsi dengan n.);
+          return;
+        }
+        const c = modPow(m, BigInt(e), n);
+        ciphertextBlocks.push(c.toString());
+      }
+
+      // Tampilkan hasil ciphertext
+      const ciphertextStr = ciphertextBlocks.join(' ');
+      document.getElementById('outputCiphertext').value = ciphertextStr;
+
+      // Generate barcode dari ciphertext string
+      try {
+        JsBarcode('#barcode', ciphertextStr, {
+          format: 'CODE128',
+          lineColor: '#4f46e5',
+          width: 2,
+          height: 80,
+          displayValue: false,
+          margin: 10,
+        });
+      } catch (err) {
+        alert('Gagal membuat barcode: ' + err.message);
+      }
+    }
+
+    // Decrypt handler
+    function decryptHandler() {
+      const p = parseInt(document.getElementById('p').value);
+      const q = parseInt(document.getElementById('q').value);
+      const e = parseInt(document.getElementById('e').value);
+      const ciphertextStr = document.getElementById('outputCiphertext').value.trim();
+
+      if (!p || !q || !e) {
+        alert('Bilangan prima p, q dan eksponen e harus diisi.');
+        return;
+      }
+      if (!isPrime(p)) {
+        alert('p bukan bilangan prima.');
+        return;
+      }
+      if (!isPrime(q)) {
+        alert('q bukan bilangan prima.');
+        return;
+      }
+      if (e <= 1) {
+        alert('Eksponen e harus lebih besar dari 1.');
+        return;
+      }
+      if (!ciphertextStr) {
+        alert('Masukkan ciphertext terlebih dahulu.');
+        return;
+      }
+
+      const n = BigInt(p) * BigInt(q);
+      const phi = BigInt(p - 1) * BigInt(q - 1);
+
+      // Hitung d (kunci privat)
+      const d = modInverse(BigInt(e), phi);
+      if (d === null) {
+        alert('Tidak dapat menghitung kunci privat d. Pastikan e dan phi(n) coprime.');
+        return;
+      }
+
+      // Tentukan block size (2-4) berdasarkan n (sama seperti encrypt)
+      let blockSize = 4;
+      while (blockSize > 1) {
+        const maxBlockValue = BigInt(256) ** BigInt(blockSize) - 1n;
+        if (maxBlockValue < n) break;
+        blockSize--;
+      }
+      if (blockSize === 1) {
+        alert('Nilai n terlalu kecil untuk blok minimal 2 karakter.');
+        return;
+      }
+
+      // Pisah ciphertext menjadi blok angka
+      const ciphertextBlocks = ciphertextStr.split(' ').filter((b) => b.length > 0);
+
+      // Dekripsi tiap blok
+      let plaintext = '';
+      for (const cStr of ciphertextBlocks) {
+        let c;
+        try {
+          c = BigInt(cStr);
+        } catch {
+          alert('Format ciphertext tidak valid.');
+          return;
+        }
+        if (c >= n) {
+          alert('Nilai ciphertext melebihi n.');
+          return;
+        }
+        const m = modPow(c, d, n);
+        const block = numberToBlock(Number(m), blockSize);
+        plaintext += block;
+      }
+
+      // Tampilkan hasil dekripsi di inputText
+      document.getElementById('inputText').value = plaintext;
+    }
+
+    // Initial load
+    if (getLoggedInUser()) {
+      renderIndex();
+    } else {
+      renderLogin();
+    }
+  </script>
+</body>
+</html>
