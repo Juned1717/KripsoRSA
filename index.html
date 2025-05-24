@@ -102,9 +102,19 @@
   </div>
 
   <!-- DATA SECTION -->
-  <div id="data-section" class="hidden p-4 border rounded mb-4">
-    <h3 class="font-semibold mb-2">📋 Data Dokumen</h3>
-      <p>Ini adalah halaman data dokumen.</p>
+  <div id="data-section" class="hidden p-4 border rounded">
+    <h3 class="font-semibold mb-4 text-lg">📄 Input Data Dokumen</h3>
+      <form id="document-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="text" id="doc-id" placeholder="ID Dokumen" class="border px-3 py-2 rounded" required />
+        <input type="text" id="doc-nama" placeholder="Nama Penandatangan" class="border px-3 py-2 rounded" required />
+        <input type="date" id="doc-tanggal" class="border px-3 py-2 rounded" required />
+        <input type="text" id="doc-keterangan" placeholder="Keterangan" class="border px-3 py-2 rounded" required />
+        <input type="text" id="doc-file" placeholder="Nama File (contoh: dokumen.pdf)" class="border px-3 py-2 rounded" required />
+
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded col-span-1 md:col-span-2 hover:bg-blue-700">
+      Simpan Data Dokumen
+      </button>
+    </form>
   </div>
 
   <!-- VERIFIKASI SECTION -->
@@ -130,6 +140,7 @@
   
   <!-- SCRIPT -->
   <script>
+    let documents = []; // Database sementara
     const USERS = { "admin": "1234", "user": "abcd" };
     function login() {
       const u = document.getElementById("username").value;
@@ -319,6 +330,37 @@
       URL.revokeObjectURL(url);
     }
 
+  document.getElementById("document-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const id = document.getElementById("doc-id").value.trim();
+  const nama = document.getElementById("doc-nama").value.trim();
+  const tanggal = document.getElementById("doc-tanggal").value;
+  const keterangan = document.getElementById("doc-keterangan").value.trim();
+  const file = document.getElementById("doc-file").value.trim();
+
+  // Validasi sederhana
+  if (!id || !nama || !tanggal || !keterangan || !file) {
+    alert("Mohon isi semua field.");
+    return;
+  }
+
+  const newDoc = {
+    id,
+    nama,
+    tanggal,
+    keterangan,
+    file
+  };
+
+  documents.push(newDoc);
+
+  alert("Data berhasil disimpan!");
+
+  // Reset form
+  this.reset();
+  });
+    
   function searchDocuments() {
   const keyword = document.getElementById("search-input").value.toLowerCase();
   const tbody = document.getElementById("result-table");
