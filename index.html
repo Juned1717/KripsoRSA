@@ -130,6 +130,7 @@
         <th class="p-2 border">Tanggal</th>
         <th class="p-2 border">Keterangan</th>
         <th class="p-2 border">File</th>
+        <th class="border p-2">Aksi</th>
       </tr>
     </thead>
     <tbody id="result-table" class="text-sm">
@@ -384,6 +385,9 @@
         <td class="border p-2">${doc.tanggal}</td>
         <td class="border p-2">${doc.keterangan}</td>
         <td class="border p-2"><a href="${doc.file}" target="_blank" class="text-blue-600 underline">Lihat</a></td>
+        <td class="border p-2 text-center">
+          <button onclick="deleteDocument('${doc.id}')" class="bg-red-600 text-white px-2 py-1 rounded text-sm hover:bg-red-700">Hapus</button>
+        </td>
       </tr>
     `;
     tbody.innerHTML += row;
