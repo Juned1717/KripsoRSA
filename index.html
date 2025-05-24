@@ -532,5 +532,17 @@
       renderLogin();
     }
   </script>
+
+<script>
+  // Render halaman login saat pertama kali halaman dibuka
+  window.addEventListener('DOMContentLoaded', () => {
+    if (getLoggedInUser()) {
+      renderIndex(); // Jika sudah login, langsung ke halaman utama
+    } else {
+      renderLogin(); // Jika belum, tampilkan login
+    }
+  });
+</script>
+  
 </body>
 </html>
