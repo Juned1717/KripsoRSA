@@ -356,6 +356,34 @@
   document.getElementById("doc-tanggal").value = "";
   document.getElementById("doc-keterangan").value = "";
   fileInput.value = "";
+
+  // Tambahkan ini agar section verifikasi ikut update:
+  renderVerificationTable();
+  }
+
+  function renderVerificationTable() {
+  const tableBody = document.getElementById("verify-table-body");
+  tableBody.innerHTML = ""; // Kosongkan tabel terlebih dahulu
+
+  documents.forEach((doc, index) => {
+    const row = document.createElement("tr");
+    row.classList.add("border");
+
+    row.innerHTML = `
+      <td class="border px-4 py-2">${index + 1}</td>
+      <td class="border px-4 py-2">${doc.id}</td>
+      <td class="border px-4 py-2">${doc.nama}</td>
+      <td class="border px-4 py-2">${doc.tanggal}</td>
+      <td class="border px-4 py-2">${doc.keterangan}</td>
+      <td class="border px-4 py-2">
+        <a href="${doc.file}" target="_blank" class="text-blue-600 underline">Lihat File</a>
+      </td>
+      <td class="border px-4 py-2">
+        <button onclick="deleteDocument(${index})" class="text-red-600 underline">Hapus</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+    });
   }
     
   function searchDocuments() {
