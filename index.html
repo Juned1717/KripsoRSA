@@ -109,9 +109,24 @@
 
   <!-- VERIFIKASI SECTION -->
     <div id="verifikasi-section" class="hidden p-4 border rounded">
-      <h3 class="font-semibold mb-2">✅ Verifikasi</h3>
-        <p>Ini adalah halaman verifikasi tanda tangan.</p>
-    </div>
+  <h3 class="font-semibold mb-4 text-lg">✅ Verifikasi Dokumen</h3>
+  <input id="search-input" type="text" placeholder="Cari berdasarkan ID Dokumen atau Nama..." class="w-full border px-3 py-2 rounded mb-4" oninput="searchDocuments()" />
+
+  <table class="w-full table-auto border">
+    <thead>
+      <tr class="bg-gray-200 text-left">
+        <th class="p-2 border">ID</th>
+        <th class="p-2 border">Nama</th>
+        <th class="p-2 border">Tanggal</th>
+        <th class="p-2 border">Keterangan</th>
+        <th class="p-2 border">File</th>
+      </tr>
+    </thead>
+    <tbody id="result-table" class="text-sm">
+      <!-- Data hasil pencarian muncul di sini -->
+    </tbody>
+  </table>
+</div>
   
   <!-- SCRIPT -->
   <script>
@@ -303,6 +318,36 @@
       a.click();
       URL.revokeObjectURL(url);
     }
+
+  function searchDocuments() {
+  const keyword = document.getElementById("search-input").value.toLowerCase();
+  const tbody = document.getElementById("result-table");
+  tbody.innerHTML = "";
+
+  const results = documents.filter(doc =>
+    doc.id.toLowerCase().includes(keyword) ||
+    doc.nama.toLowerCase().includes(keyword)
+  );
+
+  if (results.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center p-2 text-gray-500">Tidak ada data ditemukan</td></tr>`;
+    return;
+  }
+
+  results.forEach(doc => {
+    const row = `
+      <tr>
+        <td class="border p-2">${doc.id}</td>
+        <td class="border p-2">${doc.nama}</td>
+        <td class="border p-2">${doc.tanggal}</td>
+        <td class="border p-2">${doc.keterangan}</td>
+        <td class="border p-2"><a href="${doc.file}" target="_blank" class="text-blue-600 underline">Lihat</a></td>
+      </tr>
+    `;
+    tbody.innerHTML += row;
+    });
+  }
+    
   </script>
 </body>
 </html>
