@@ -3,143 +3,125 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login & RSA QR Tool</title>
+  <title>RSA QR Tool</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 </head>
-<body class="bg-gray-100 p-6 font-sans">
-
-  <!-- Login Section -->
-  <div id="loginSection" class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
-    <h2 class="text-2xl font-bold mb-6 text-center">🔐 Login Required</h2>
-    <label class="block mb-2 font-semibold">Username:</label>
-    <input type="text" id="username" class="w-full border px-2 py-1 rounded mb-4" />
-    <label class="block mb-2 font-semibold">Password:</label>
-    <input type="password" id="password" class="w-full border px-2 py-1 rounded mb-6" />
-    <button onclick="login()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Login</button>
-    <p id="loginError" class="text-red-600 mt-4 hidden">Username atau password salah.</p>
+<body class="bg-gray-100 font-sans">
+  <!-- LOGIN PAGE -->
+  <div id="loginPage" class="flex items-center justify-center h-screen">
+    <div class="bg-white p-6 rounded shadow-md w-80">
+      <h2 class="text-xl font-bold text-center mb-4">🔐 Login RSA Tool</h2>
+      <input type="text" id="username" placeholder="Username" class="w-full border px-2 py-1 mb-3 rounded">
+      <input type="password" id="password" placeholder="Password" class="w-full border px-2 py-1 mb-4 rounded">
+      <button onclick="login()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Login</button>
+    </div>
   </div>
 
-  <!-- Main App Section -->
-  <div id="appSection" class="hidden max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
-    <!-- Menu -->
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-xl font-bold">🛠️ RSA QR Tool</h2>
-      <div class="space-x-2">
-        <button onclick="showMenu('encrypt')" class="bg-green-500 text-white px-4 py-2 rounded">🔐 Enkripsi</button>
-        <button onclick="showMenu('decrypt')" class="bg-red-500 text-white px-4 py-2 rounded">🔓 Dekripsi</button>
+  <!-- MAIN APP -->
+  <div id="appPage" class="hidden p-6">
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
+      <h2 class="text-2xl font-bold mb-6 text-center">🔐 RSA Encryption & QR Tool</h2>
+      
+      <!-- MENU -->
+      <div class="flex justify-center space-x-4 mb-6">
+        <button onclick="showTab('encrypt')" class="bg-green-600 text-white px-4 py-2 rounded">Enkripsi</button>
+        <button onclick="showTab('decrypt')" class="bg-red-600 text-white px-4 py-2 rounded">Dekripsi</button>
       </div>
-    </div>
 
-    <!-- Enkripsi Section -->
-    <div id="encryptSection" class="hidden">
-      <h3 class="text-lg font-semibold mb-4">🔐 Enkripsi & QR Code</h3>
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label class="text-sm">p (prime):</label>
-          <input type="number" id="p" class="w-full border px-2 py-1 rounded" />
+      <!-- ENCRYPT MENU -->
+      <div id="encryptTab">
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="text-sm">p (prime):</label>
+            <input type="number" id="p" class="w-full border px-2 py-1 rounded">
+          </div>
+          <div>
+            <label class="text-sm">q (prime):</label>
+            <input type="number" id="q" class="w-full border px-2 py-1 rounded">
+          </div>
+          <div class="col-span-2">
+            <label class="text-sm">e (public exponent):</label>
+            <input type="number" id="e" class="w-full border px-2 py-1 rounded">
+          </div>
         </div>
-        <div>
-          <label class="text-sm">q (prime):</label>
-          <input type="number" id="q" class="w-full border px-2 py-1 rounded" />
-        </div>
-        <div class="col-span-2">
-          <label class="text-sm">e (public exponent):</label>
-          <input type="number" id="e" class="w-full border px-2 py-1 rounded" />
-        </div>
-      </div>
-      <div class="mb-4">
-        <label class="text-sm">Plaintext (ID Surat):</label>
-        <input type="text" id="plaintext" class="w-full border px-2 py-1 rounded" />
-      </div>
-      <button onclick="encrypt()" class="bg-green-600 text-white px-4 py-2 rounded w-full mb-4">
-        🔐 Encrypt & Generate QR
-      </button>
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label class="text-sm">n:</label>
-          <input type="text" id="n" class="w-full border px-2 py-1 rounded bg-gray-100" readonly />
-        </div>
-        <div>
-          <label class="text-sm">d:</label>
-          <input type="text" id="d" class="w-full border px-2 py-1 rounded bg-gray-100" readonly />
-        </div>
-      </div>
-      <div class="text-center mb-6">
-        <canvas id="qrcode-canvas" class="mx-auto"></canvas>
-        <button onclick="downloadQR()" class="mt-2 bg-purple-600 text-white px-4 py-2 rounded">
-          ⬇️ Simpan QR Code
-        </button>
-      </div>
-    </div>
 
-    <!-- Dekripsi Section -->
-    <div id="decryptSection" class="hidden">
-      <h3 class="text-lg font-semibold mb-4">🔓 Dekripsi dari QR Code</h3>
-      <div class="mb-4">
-        <label class="text-sm font-semibold">📷 Upload QR Code Image:</label>
-        <input type="file" id="qrUpload" accept="image/*" onchange="scanQR(event)" class="block mt-2" />
-      </div>
-      <div class="mb-4">
-        <button onclick="startCameraScan()" class="bg-blue-600 text-white px-4 py-2 rounded w-full mb-2">
-          📷 Scan QR Code dari Kamera
-        </button>
-        <video id="video" style="width: 100%; max-width: 400px; display: none;" class="border rounded"></video>
-        <button onclick="stopCameraScan()" id="stopScanBtn" class="bg-red-600 text-white px-4 py-2 rounded w-full mt-2" style="display:none;">
-          ✋ Stop Scan
-        </button>
-      </div>
-      <div class="mb-4">
-        <label class="text-sm">Ciphertext:</label>
-        <textarea id="ciphertextInput" rows="4" class="w-full border px-2 py-1 rounded"></textarea>
-      </div>
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label class="text-sm">d (private key):</label>
-          <input type="text" id="d" class="w-full border px-2 py-1 rounded" />
+        <div class="mb-4">
+          <label class="text-sm">Plaintext (ID Surat):</label>
+          <input type="text" id="plaintext" class="w-full border px-2 py-1 rounded">
         </div>
-        <div>
-          <label class="text-sm">n:</label>
-          <input type="text" id="n" class="w-full border px-2 py-1 rounded" />
+
+        <button onclick="encrypt()" class="bg-green-700 text-white px-4 py-2 rounded w-full mb-4">
+          🔐 Encrypt & Generate QR
+        </button>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <input type="text" id="n" class="w-full border px-2 py-1 rounded bg-gray-100" placeholder="n" readonly>
+          <input type="text" id="d" class="w-full border px-2 py-1 rounded bg-gray-100" placeholder="d" readonly>
+        </div>
+
+        <div class="text-center mb-6">
+          <canvas id="qrcode-canvas" class="mx-auto"></canvas>
+          <button onclick="downloadQR()" class="mt-2 bg-purple-600 text-white px-4 py-2 rounded">⬇️ Simpan QR</button>
         </div>
       </div>
-      <button onclick="decrypt()" class="bg-red-600 text-white px-4 py-2 rounded w-full mb-4">
-        🔓 Decrypt
-      </button>
-      <div>
-        <label class="text-sm">Plaintext Hasil Dekripsi:</label>
-        <textarea id="decryptedText" rows="2" class="w-full border px-2 py-1 rounded bg-gray-100" readonly></textarea>
+
+      <!-- DECRYPT MENU -->
+      <div id="decryptTab" class="hidden">
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="text-sm">p:</label>
+            <input type="number" id="p_dec" class="w-full border px-2 py-1 rounded">
+          </div>
+          <div>
+            <label class="text-sm">q:</label>
+            <input type="number" id="q_dec" class="w-full border px-2 py-1 rounded">
+          </div>
+          <div class="col-span-2">
+            <label class="text-sm">e:</label>
+            <input type="number" id="e_dec" class="w-full border px-2 py-1 rounded">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="text-sm font-semibold">📷 Upload QR Code:</label>
+          <input type="file" accept="image/*" onchange="scanQR(event)" class="block mt-2">
+        </div>
+
+        <div class="mb-4">
+          <label class="text-sm">Ciphertext dari QR:</label>
+          <textarea id="ciphertextInput" rows="4" class="w-full border px-2 py-1 rounded"></textarea>
+        </div>
+
+        <button onclick="decrypt()" class="bg-red-700 text-white px-4 py-2 rounded w-full mb-4">🔓 Decrypt</button>
+
+        <div>
+          <label class="text-sm">Plaintext Hasil Dekripsi:</label>
+          <textarea id="decryptedText" rows="2" class="w-full border px-2 py-1 rounded bg-gray-100" readonly></textarea>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- SCRIPT -->
   <script>
-    const validUsers = {
-      "admin": "admin123",
-      "user1": "pass1"
-    };
+    const credentials = { username: "admin", password: "123456" };
 
     function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      if (validUsers[username] === password) {
-        document.getElementById("loginSection").style.display = "none";
-        document.getElementById("appSection").style.display = "block";
-        showMenu('encrypt');
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+      if (user === credentials.username && pass === credentials.password) {
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("appPage").classList.remove("hidden");
       } else {
-        document.getElementById("loginError").style.display = "block";
+        alert("Username atau password salah");
       }
     }
 
-    function showMenu(menu) {
-      document.getElementById("encryptSection").style.display = "none";
-      document.getElementById("decryptSection").style.display = "none";
-      if (menu === 'encrypt') {
-        document.getElementById("encryptSection").style.display = "block";
-      } else {
-        document.getElementById("decryptSection").style.display = "block";
-      }
+    function showTab(tab) {
+      document.getElementById("encryptTab").style.display = tab === "encrypt" ? "block" : "none";
+      document.getElementById("decryptTab").style.display = tab === "decrypt" ? "block" : "none";
     }
 
     function gcd(a, b) {
@@ -153,33 +135,42 @@
         let q = Math.floor(b / e);
         [a, b, u, e] = [u, e, a - q * u, b - q * e];
       }
-      if (b !== 1) return null;
-      return (a + phi) % phi;
+      return (b === 1) ? (a + phi) % phi : null;
     }
 
-    function calculateKeys() {
-      const p = parseInt(document.getElementById("p").value);
-      const q = parseInt(document.getElementById("q").value);
-      const e = parseInt(document.getElementById("e").value);
+    function calculateKeys(p, q, e) {
       const n = p * q;
       const phi = (p - 1) * (q - 1);
+      if (gcd(e, phi) !== 1) throw "e tidak coprime dengan φ(n)";
       const d = modInverse(e, phi);
-      document.getElementById("n").value = n;
-      document.getElementById("d").value = d;
+      if (d === null) throw "Invers modular tidak ditemukan";
+      return { n, d };
     }
 
     function encrypt() {
-      calculateKeys();
-      const plaintext = document.getElementById("plaintext").value;
-      const e = parseInt(document.getElementById("e").value);
-      const n = parseInt(document.getElementById("n").value);
-      const ciphertext = Array.from(plaintext).map(ch => {
-        const m = BigInt(ch.charCodeAt(0));
-        const c = (m ** BigInt(e)) % BigInt(n);
-        return c.toString();
-      }).join(" ");
-      QRCode.toCanvas(document.getElementById("qrcode-canvas"), ciphertext);
-      document.getElementById("ciphertextInput").value = "";
+      try {
+        const p = parseInt(document.getElementById("p").value);
+        const q = parseInt(document.getElementById("q").value);
+        const e = parseInt(document.getElementById("e").value);
+        const plaintext = document.getElementById("plaintext").value;
+
+        const { n, d } = calculateKeys(p, q, e);
+        document.getElementById("n").value = n;
+        document.getElementById("d").value = d;
+
+        const ciphertext = Array.from(plaintext).map(ch => {
+          const m = BigInt(ch.charCodeAt(0));
+          return (m ** BigInt(e) % BigInt(n)).toString();
+        }).join(" ");
+
+        QRCode.toCanvas(document.getElementById("qrcode-canvas"), ciphertext, err => {
+          if (err) alert("QR generation failed");
+        });
+
+        document.getElementById("ciphertextInput").value = "";
+      } catch (err) {
+        alert(err);
+      }
     }
 
     function downloadQR() {
@@ -205,9 +196,8 @@
           const code = jsQR(imageData.data, canvas.width, canvas.height);
           if (code) {
             document.getElementById("ciphertextInput").value = code.data;
-            alert("QR Code berhasil terbaca!");
           } else {
-            alert("QR Code tidak terbaca.");
+            alert("QR tidak terbaca");
           }
         };
         img.src = reader.result;
@@ -215,62 +205,23 @@
       reader.readAsDataURL(file);
     }
 
-    let videoStream = null;
-    let scanning = false;
-
-    function startCameraScan() {
-      const video = document.getElementById("video");
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
-          videoStream = stream;
-          video.srcObject = stream;
-          video.style.display = "block";
-          document.getElementById("stopScanBtn").style.display = "block";
-          video.play();
-          scanning = true;
-          scanVideoFrame();
-        });
-    }
-
-    function scanVideoFrame() {
-      if (!scanning) return;
-      const video = document.getElementById("video");
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, canvas.width, canvas.height);
-      if (code) {
-        document.getElementById("ciphertextInput").value = code.data;
-        alert("QR Code berhasil dari kamera!");
-        stopCameraScan();
-        return;
-      }
-      requestAnimationFrame(scanVideoFrame);
-    }
-
-    function stopCameraScan() {
-      scanning = false;
-      const video = document.getElementById("video");
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-      }
-      video.srcObject = null;
-      video.style.display = "none";
-      document.getElementById("stopScanBtn").style.display = "none";
-    }
-
     function decrypt() {
-      const ciphertext = document.getElementById("ciphertextInput").value.trim().split(" ");
-      const d = BigInt(document.getElementById("d").value);
-      const n = BigInt(document.getElementById("n").value);
-      const chars = ciphertext.map(c => {
-        const m = (BigInt(c) ** d) % n;
-        return String.fromCharCode(Number(m));
-      });
-      document.getElementById("decryptedText").value = chars.join("");
+      try {
+        const p = parseInt(document.getElementById("p_dec").value);
+        const q = parseInt(document.getElementById("q_dec").value);
+        const e = parseInt(document.getElementById("e_dec").value);
+        const ciphertext = document.getElementById("ciphertextInput").value.trim().split(" ");
+
+        const { n, d } = calculateKeys(p, q, e);
+        const chars = ciphertext.map(c => {
+          const m = BigInt(c) ** BigInt(d) % BigInt(n);
+          return String.fromCharCode(Number(m));
+        });
+
+        document.getElementById("decryptedText").value = chars.join("");
+      } catch (err) {
+        alert("Dekripsi gagal: " + err);
+      }
     }
   </script>
 </body>
