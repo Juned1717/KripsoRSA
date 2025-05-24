@@ -54,14 +54,15 @@
       <textarea id="ciphertext" rows="4" class="w-full border px-2 py-1 rounded" readonly></textarea>
     </div>
 
-    <div id="qrcode" class="text-center mt-4"></div>
+    <div class="mb-4 text-center">
+      <canvas id="qrcode-canvas" class="mx-auto mb-2"></canvas>
+      <button onclick="downloadQR()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">⬇️ Simpan QR Code</button>
+    </div>
   </div>
 
   <script>
     function gcd(a, b) {
-      while (b !== 0) {
-        [a, b] = [b, a % b];
-      }
+      while (b !== 0) [a, b] = [b, a % b];
       return a;
     }
 
@@ -95,7 +96,7 @@
 
       const d = modInverse(e, phi);
       if (d === null) {
-        alert("Tidak ditemukan invers modular untuk e. Coba nilai e lain.");
+        alert("Tidak ditemukan invers modular untuk e.");
         return;
       }
 
@@ -123,9 +124,17 @@
       const ciphertext = encoded.join(" ");
       document.getElementById("ciphertext").value = ciphertext;
 
-      QRCode.toCanvas(document.getElementById("qrcode"), ciphertext, function (error) {
+      QRCode.toCanvas(document.getElementById("qrcode-canvas"), ciphertext, function (error) {
         if (error) console.error(error);
       });
+    }
+
+    function downloadQR() {
+      const canvas = document.getElementById("qrcode-canvas");
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "qr_ciphertext.png";
+      link.click();
     }
   </script>
 </body>
