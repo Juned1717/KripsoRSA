@@ -109,7 +109,7 @@
         <input type="text" id="doc-nama" placeholder="Nama Penandatangan" class="border px-3 py-2 rounded" required />
         <input type="date" id="doc-tanggal" class="border px-3 py-2 rounded" required />
         <input type="text" id="doc-keterangan" placeholder="Keterangan" class="border px-3 py-2 rounded" required />
-        <input type="text" id="doc-file" placeholder="Nama File (contoh: dokumen.pdf)" class="border px-3 py-2 rounded" required />
+        <input type="file" id="doc-file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" class="border px-3 py-2 rounded w-full" />
 
       <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded col-span-1 md:col-span-2 hover:bg-blue-700">
       Simpan Data Dokumen
@@ -331,36 +331,32 @@
       URL.revokeObjectURL(url);
     }
 
-  document.getElementById("document-form").addEventListener("submit", function (e) {
-  e.preventDefault();
-
+  function addDocument() {
   const id = document.getElementById("doc-id").value.trim();
   const nama = document.getElementById("doc-nama").value.trim();
   const tanggal = document.getElementById("doc-tanggal").value;
   const keterangan = document.getElementById("doc-keterangan").value.trim();
-  const file = document.getElementById("doc-file").value.trim();
+  const fileInput = document.getElementById("doc-file");
 
   // Validasi sederhana
-  if (!id || !nama || !tanggal || !keterangan || !file) {
-    alert("Mohon isi semua field.");
+  if (!id || !nama || !tanggal || !keterangan || fileInput.files.length === 0) {
+    alert("Harap lengkapi semua kolom.");
     return;
   }
 
-  const newDoc = {
-    id,
-    nama,
-    tanggal,
-    keterangan,
-    file
-  };
+  const file = fileInput.files[0];
+  const fileURL = URL.createObjectURL(file); // Menyimpan URL sementara untuk ditampilkan
 
-  documents.push(newDoc);
+  const documentData = { id, nama, tanggal, keterangan, file: fileURL };
+  documents.push(documentData);
 
-  alert("Data berhasil disimpan!");
-
-  // Reset form
-  this.reset();
-  });
+  alert("Dokumen berhasil ditambahkan.");
+  document.getElementById("doc-id").value = "";
+  document.getElementById("doc-nama").value = "";
+  document.getElementById("doc-tanggal").value = "";
+  document.getElementById("doc-keterangan").value = "";
+  fileInput.value = "";
+  }
     
   function searchDocuments() {
   const keyword = document.getElementById("search-input").value.toLowerCase();
