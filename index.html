@@ -36,18 +36,18 @@
     </div>
 
     <!-- RSA Keys -->
-    <div class="grid grid-cols-3 gap-4 mb-4">
-      <div>
-        <label class="text-sm">p (prime)</label>
-        <input type="number" id="p" class="w-full border px-2 py-1 rounded">
-      </div>
+      <div id="rsa-keys" class="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="text-sm">p (prime)</label>
+            <input type="number" id="p" class="w-full border px-2 py-1 rounded">
+        </div>
       <div>
         <label class="text-sm">q (prime)</label>
-        <input type="number" id="q" class="w-full border px-2 py-1 rounded">
+          <input type="number" id="q" class="w-full border px-2 py-1 rounded">
       </div>
       <div>
         <label class="text-sm">e (public exponent)</label>
-        <input type="number" id="e" class="w-full border px-2 py-1 rounded">
+          <input type="number" id="e" class="w-full border px-2 py-1 rounded">
       </div>
     </div>
 
@@ -143,6 +143,12 @@
       document.getElementById("encrypt-section").classList.toggle("hidden", menu !== "encrypt");
       document.getElementById("decrypt-section").classList.toggle("hidden", menu !== "decrypt");
       document.getElementById("ttd-section").classList.toggle("hidden", menu !== "ttd");
+      document.getElementById("data-section").classList.toggle("hidden", menu !== "data");
+      document.getElementById("verifikasi-section").classList.toggle("hidden", menu !== "verifikasi");
+
+      // RSA keys hanya tampil di encrypt & decrypt
+      const rsaKeys = document.getElementById("rsa-keys");
+      rsaKeys.classList.toggle("hidden", !(menu === "encrypt" || menu === "decrypt"));
     }
 
     function gcd(a, b) {
