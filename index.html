@@ -349,6 +349,7 @@
 
   const documentData = { id, nama, tanggal, keterangan, file: fileURL };
   documents.push(documentData);
+  renderVerificationTable(); // WAJIB ada ini
 
   alert("Dokumen berhasil ditambahkan.");
   document.getElementById("doc-id").value = "";
