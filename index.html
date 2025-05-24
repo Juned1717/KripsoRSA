@@ -357,9 +357,11 @@
   document.getElementById("doc-tanggal").value = "";
   document.getElementById("doc-keterangan").value = "";
   fileInput.value = "";
+  }
 
-  // Tambahkan ini agar section verifikasi ikut update:
-  renderVerificationTable();
+  function deleteDocument(index) {
+  documents.splice(index, 1); // Hapus dari array
+  renderVerificationTable();  // ← WAJIB di sini juga
   }
 
   function renderVerificationTable() {
