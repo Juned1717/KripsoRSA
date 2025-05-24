@@ -64,6 +64,16 @@
       <input type="file" id="qrUpload" accept="image/*" onchange="scanQR(event)" class="block mt-2">
     </div>
 
+    <!-- Scan QR from Camera -->
+    <div class="mb-6">
+      <label class="text-sm font-semibold">📷 Scan QR Code dari Kamera:</label>
+      <div class="flex items-center gap-2 mt-2">
+        <button onclick="startCameraScan()" class="bg-blue-600 text-white px-4 py-2 rounded">▶️ Mulai Scan Kamera</button>
+        <button onclick="stopCameraScan()" class="bg-gray-600 text-white px-4 py-2 rounded">⏹️ Stop Scan</button>
+      </div>
+      <video id="video" class="mt-2 border rounded w-full max-w-md" style="display:none;" autoplay muted></video>
+    </div>
+
     <!-- Ciphertext (from QR) -->
     <div class="mb-4">
       <label class="text-sm">Ciphertext (dari QR):</label>
@@ -81,6 +91,7 @@
   </div>
 
   <script>
+    // === RSA Key & Math Functions ===
     function gcd(a, b) {
       while (b !== 0) [a, b] = [b, a % b];
       return a;
@@ -113,6 +124,7 @@
       document.getElementById("d").value = d;
     }
 
+    // === Encrypt & Generate QR ===
     function encrypt() {
       try {
         calculateKeys();
@@ -126,18 +138,20 @@
           return c.toString();
         }).join(" ");
 
-        // Hanya simpan ke QR, jangan tampilkan
+        // Generate QR code
         QRCode.toCanvas(document.getElementById("qrcode-canvas"), ciphertext, function (error) {
           if (error) console.error(error);
         });
 
-        // Simpan ke element tersembunyi
+        // Clear ciphertext input (so user can scan from QR or upload)
         document.getElementById("ciphertextInput").value = "";
+        document.getElementById("decryptedText").value = "";
       } catch (err) {
         alert(err);
       }
     }
 
+    // === Download QR Image ===
     function downloadQR() {
       const canvas = document.getElementById("qrcode-canvas");
       const link = document.createElement("a");
@@ -146,6 +160,7 @@
       link.click();
     }
 
+    // === Scan QR from Uploaded Image ===
     function scanQR(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
@@ -161,6 +176,7 @@
           const code = jsQR(imageData.data, canvas.width, canvas.height);
           if (code) {
             document.getElementById("ciphertextInput").value = code.data;
+            alert("QR Code berhasil discan dari file!");
           } else {
             alert("QR Code tidak terbaca");
           }
@@ -170,11 +186,70 @@
       reader.readAsDataURL(file);
     }
 
+    // === Real-time Scan QR from Camera ===
+    let videoStream = null;
+    let scanning = false;
+
+    function startCameraScan() {
+      const video = document.getElementById("video");
+      if (scanning) return;
+
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+          videoStream = stream;
+          video.srcObject = stream;
+          video.style.display = "block";
+          scanning = true;
+          scanVideoFrame();
+        })
+        .catch(err => {
+          alert("Gagal akses kamera: " + err);
+        });
+    }
+
+    function stopCameraScan() {
+      const video = document.getElementById("video");
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+      scanning = false;
+      video.style.display = "none";
+    }
+
+    function scanVideoFrame() {
+      if (!scanning) return;
+
+      const video = document.getElementById("video");
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const code = jsQR(imageData.data, canvas.width, canvas.height);
+      if (code) {
+        document.getElementById("ciphertextInput").value = code.data;
+        alert("QR Code berhasil discan dari kamera!");
+        stopCameraScan();
+      } else {
+        requestAnimationFrame(scanVideoFrame);
+      }
+    }
+
+    // === Decrypt ===
     function decrypt() {
-      const ciphertext = document.getElementById("ciphertextInput").value.trim().split(" ");
-      const d = BigInt(document.getElementById("d").value);
-      const n = BigInt(document.getElementById("n").value);
-      if (!d || !n || ciphertext.length === 0) return alert("Isi kunci dan ciphertext terlebih dahulu");
+      const ciphertextRaw = document.getElementById("ciphertextInput").value.trim();
+      if (ciphertextRaw.length === 0) return alert("Masukkan ciphertext dari QR terlebih dahulu.");
+
+      const ciphertext = ciphertextRaw.split(" ");
+      const dVal = document.getElementById("d").value;
+      const nVal = document.getElementById("n").value;
+      if (!dVal || !nVal) return alert("Kunci privat belum dihitung (isi p, q, e lalu encrypt).");
+
+      const d = BigInt(dVal);
+      const n = BigInt(nVal);
 
       try {
         const chars = ciphertext.map(c => {
