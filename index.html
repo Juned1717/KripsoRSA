@@ -1,51 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RSA Encryption with QR Code</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RSA Encryption</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 </head>
 <body class="bg-gray-100 p-6 font-sans">
   <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
-    <h2 class="text-2xl font-bold mb-4 text-center">🔐 RSA Encryption & QR Code Generator</h2>
+    <h2 class="text-2xl font-bold mb-4 text-center">🔐 RSA Encryption & QR Code</h2>
 
-    <div class="flex items-center justify-between mb-4">
-      <button onclick="generateKeys()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">🔄 Generate RSA Keys</button>
-      <label class="text-sm"><input type="checkbox" id="manualMode" onchange="toggleManualMode()"> Manual Input Mode</label>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
         <label class="block text-sm">p (prime):</label>
-        <input type="text" id="p" class="w-full border px-2 py-1 rounded" readonly>
+        <input type="number" id="p" class="w-full border px-2 py-1 rounded" required>
       </div>
       <div>
         <label class="block text-sm">q (prime):</label>
-        <input type="text" id="q" class="w-full border px-2 py-1 rounded" readonly>
-      </div>
-      <div>
-        <label class="block text-sm">n (p × q):</label>
-        <input type="text" id="n" class="w-full border px-2 py-1 rounded" readonly>
-      </div>
-      <div>
-        <label class="block text-sm">e (public exponent):</label>
-        <input type="text" id="e" class="w-full border px-2 py-1 rounded" readonly>
+        <input type="number" id="q" class="w-full border px-2 py-1 rounded" required>
       </div>
       <div class="col-span-2">
-        <label class="block text-sm">d (private exponent):</label>
-        <input type="text" id="d" class="w-full border px-2 py-1 rounded" readonly>
+        <label class="block text-sm">e (public exponent):</label>
+        <input type="number" id="e" class="w-full border px-2 py-1 rounded" required>
       </div>
+    </div>
+
+    <div class="mb-4">
+      <button onclick="calculateKeys()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">🔄 Hitung n dan d</button>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm">n (p × q):</label>
+      <input type="text" id="n" class="w-full border px-2 py-1 rounded bg-gray-100" readonly>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm">d (private exponent):</label>
+      <input type="text" id="d" class="w-full border px-2 py-1 rounded bg-gray-100" readonly>
     </div>
 
     <div class="mb-4">
       <label class="block text-sm">Plaintext (ID Surat):</label>
       <input type="text" id="plaintext" class="w-full border px-2 py-1 rounded"
+        value="SERTIFIKAT/012/24052025/IGUSTIAYUSRI_BIDANGPENGMAS">
     </div>
 
     <div class="mb-4">
-      <button onclick="encrypt()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">🔐 Encrypt</button>
+      <button onclick="encrypt()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full">🔐 Encrypt</button>
     </div>
 
     <div class="mb-4">
@@ -53,28 +55,10 @@
       <textarea id="ciphertext" rows="4" class="w-full border px-2 py-1 rounded" readonly></textarea>
     </div>
 
-    <div id="qrcode" class="text-center"></div>
+    <div id="qrcode" class="text-center mt-4"></div>
   </div>
 
   <script>
-    function isPrime(n) {
-      if (n <= 1) return false;
-      if (n <= 3) return true;
-      if (n % 2 === 0 || n % 3 === 0) return false;
-      for (let i = 5; i * i <= n; i += 6) {
-        if (n % i === 0 || n % (i + 2) === 0) return false;
-      }
-      return true;
-    }
-
-    function generateLargePrime(min, max) {
-      let prime;
-      do {
-        prime = Math.floor(Math.random() * (max - min)) + min;
-      } while (!isPrime(prime));
-      return prime;
-    }
-
     function gcd(a, b) {
       while (b !== 0) {
         [a, b] = [b, a % b];
@@ -92,19 +76,31 @@
       return (a + phi) % phi;
     }
 
-    function generateKeys() {
-      const p = generateLargePrime(100, 200);
-      const q = generateLargePrime(200, 300);
+    function calculateKeys() {
+      const p = parseInt(document.getElementById("p").value);
+      const q = parseInt(document.getElementById("q").value);
+      const e = parseInt(document.getElementById("e").value);
+
+      if (!p || !q || !e || p <= 1 || q <= 1) {
+        alert("Masukkan nilai p, q, dan e yang valid.");
+        return;
+      }
+
       const n = p * q;
       const phi = (p - 1) * (q - 1);
-      let e = 3;
-      while (gcd(e, phi) !== 1) e += 2;
-      const d = modInverse(e, phi);
 
-      document.getElementById("p").value = p;
-      document.getElementById("q").value = q;
+      if (gcd(e, phi) !== 1) {
+        alert("Nilai e tidak coprime dengan φ(n). Silakan coba nilai lain.");
+        return;
+      }
+
+      const d = modInverse(e, phi);
+      if (d === null) {
+        alert("Tidak ditemukan invers modular untuk e. Coba nilai e lain.");
+        return;
+      }
+
       document.getElementById("n").value = n;
-      document.getElementById("e").value = e;
       document.getElementById("d").value = d;
     }
 
@@ -114,7 +110,7 @@
       const n = parseInt(document.getElementById("n").value);
 
       if (!e || !n) {
-        alert("Please generate or input valid RSA keys first.");
+        alert("Pastikan Anda telah menghitung nilai kunci terlebih dahulu.");
         return;
       }
 
@@ -130,13 +126,6 @@
 
       QRCode.toCanvas(document.getElementById("qrcode"), ciphertext, function (error) {
         if (error) console.error(error);
-      });
-    }
-
-    function toggleManualMode() {
-      const manual = document.getElementById("manualMode").checked;
-      ["p", "q", "n", "e", "d"].forEach(id => {
-        document.getElementById(id).readOnly = !manual;
       });
     }
   </script>
