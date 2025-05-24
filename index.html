@@ -43,8 +43,7 @@
     <!-- Plaintext -->
     <div class="mb-4">
       <label class="text-sm">Plaintext (ID Surat):</label>
-      <input type="text" id="plaintext" class="w-full border px-2 py-1 rounded"
-        value="SERTIFIKAT/012/24052025/IGUSTIAYUSRI_BIDANGPENGMAS">
+      <input type="text" id="plaintext" class="w-full border px-2 py-1 rounded">
     </div>
 
     <!-- Encrypt -->
@@ -65,8 +64,15 @@
 
     <!-- QR Scanner Upload -->
     <div class="mb-4">
-      <label class="text-sm font-semibold">📷 Upload QR Code Image to Decrypt:</label>
+      <label class="text-sm font-semibold">📁 Upload QR Code Image to Decrypt:</label>
       <input type="file" id="qrUpload" accept="image/*" onchange="scanQR(event)" class="block mt-2">
+    </div>
+
+    <!-- QR Camera Scan -->
+    <div class="mb-4">
+      <label class="text-sm font-semibold">📷 Scan QR Code via Camera:</label><br>
+      <video id="camera" width="300" height="250" class="border mt-2" autoplay></video>
+      <button onclick="startCameraScan()" class="mt-2 bg-indigo-600 text-white px-4 py-2 rounded">Mulai Scan Kamera</button>
     </div>
 
     <!-- Ciphertext (From QR) -->
@@ -149,9 +155,9 @@
     function scanQR(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = function() {
+      reader.onload = function () {
         const img = new Image();
-        img.onload = function() {
+        img.onload = function () {
           const canvas = document.createElement("canvas");
           canvas.width = img.width;
           canvas.height = img.height;
@@ -168,6 +174,37 @@
         img.src = reader.result;
       };
       reader.readAsDataURL(file);
+    }
+
+    function startCameraScan() {
+      const video = document.getElementById("camera");
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then((stream) => {
+          video.srcObject = stream;
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          function scanFrame() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const code = jsQR(imageData.data, canvas.width, canvas.height);
+              if (code) {
+                document.getElementById("ciphertextInput").value = code.data;
+                video.srcObject.getTracks().forEach(track => track.stop());
+                return;
+              }
+            }
+            requestAnimationFrame(scanFrame);
+          }
+
+          requestAnimationFrame(scanFrame);
+        })
+        .catch((err) => {
+          alert("Gagal mengakses kamera: " + err.message);
+        });
     }
 
     function decrypt() {
