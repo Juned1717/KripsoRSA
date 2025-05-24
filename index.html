@@ -1,18 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RSA QR Tool with Camera Scan</title>
+  <title>Login & RSA QR Tool</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 </head>
 <body class="bg-gray-100 p-6 font-sans">
-  <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
+
+  <!-- Login Section -->
+  <div id="loginSection" class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
+    <h2 class="text-2xl font-bold mb-6 text-center">🔐 Login Required</h2>
+    <label class="block mb-2 font-semibold">Username:</label>
+    <input type="text" id="username" class="w-full border px-2 py-1 rounded mb-4" />
+    <label class="block mb-2 font-semibold">Password:</label>
+    <input type="password" id="password" class="w-full border px-2 py-1 rounded mb-6" />
+    <button onclick="login()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Login</button>
+    <p id="loginError" class="text-red-600 mt-4 hidden">Username atau password salah.</p>
+  </div>
+
+  <!-- Main App Section (hidden sebelum login) -->
+  <div id="appSection" class="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6 hidden">
     <h2 class="text-2xl font-bold mb-6 text-center">🔐 RSA Encryption, QR Code & Decryption Tool</h2>
 
-    <!-- RSA Input -->
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
         <label class="text-sm">p (prime):</label>
@@ -28,13 +40,11 @@
       </div>
     </div>
 
-    <!-- Plaintext -->
     <div class="mb-4">
       <label class="text-sm">Plaintext (ID Surat):</label>
       <input type="text" id="plaintext" class="w-full border px-2 py-1 rounded" />
     </div>
 
-    <!-- Encrypt -->
     <button onclick="encrypt()" class="bg-green-600 text-white px-4 py-2 rounded w-full mb-4">
       🔐 Encrypt & Generate QR
     </button>
@@ -50,7 +60,6 @@
       </div>
     </div>
 
-    <!-- QR Code -->
     <div class="text-center mb-6">
       <canvas id="qrcode-canvas" class="mx-auto"></canvas>
       <button onclick="downloadQR()" class="mt-2 bg-purple-600 text-white px-4 py-2 rounded">
@@ -60,7 +69,6 @@
 
     <hr class="my-6" />
 
-    <!-- QR Upload -->
     <div class="mb-4">
       <label class="text-sm font-semibold">📷 Upload QR Code Image to Decrypt:</label>
       <input
@@ -72,7 +80,6 @@
       />
     </div>
 
-    <!-- OR scan from camera -->
     <div class="mb-4">
       <button onclick="startCameraScan()" class="bg-blue-600 text-white px-4 py-2 rounded w-full mb-2">
         📷 Scan QR Code dari Kamera
@@ -91,7 +98,6 @@
       </button>
     </div>
 
-    <!-- Ciphertext (from QR) -->
     <div class="mb-4">
       <label class="text-sm">Ciphertext (dari QR):</label>
       <textarea
@@ -101,7 +107,6 @@
       ></textarea>
     </div>
 
-    <!-- Decrypt -->
     <button
       onclick="decrypt()"
       class="bg-red-600 text-white px-4 py-2 rounded w-full mb-4"
@@ -109,7 +114,6 @@
       🔓 Decrypt
     </button>
 
-    <!-- Output -->
     <div>
       <label class="text-sm">Plaintext Hasil Dekripsi:</label>
       <textarea
@@ -122,7 +126,29 @@
   </div>
 
   <script>
-    // Helper functions
+    // Hardcoded username-password list
+    const validUsers = {
+      "admin": "admin123",
+      "user1": "pass1",
+      "user2": "pass2",
+    };
+
+    function login() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (validUsers[username] && validUsers[username] === password) {
+        // Hide login, show main app
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("appSection").style.display = "block";
+        document.getElementById("loginError").style.display = "none";
+      } else {
+        document.getElementById("loginError").style.display = "block";
+      }
+    }
+
+    // RSA & QR code functions below
+
     function gcd(a, b) {
       while (b !== 0) [a, b] = [b, a % b];
       return a;
@@ -155,7 +181,6 @@
       document.getElementById("d").value = d;
     }
 
-    // Encrypt text => ciphertext string (space separated)
     function encrypt() {
       try {
         calculateKeys();
@@ -171,7 +196,6 @@
           })
           .join(" ");
 
-        // Generate QR code
         QRCode.toCanvas(
           document.getElementById("qrcode-canvas"),
           ciphertext,
@@ -180,7 +204,6 @@
           }
         );
 
-        // Clear ciphertext input textarea (will be set by scan)
         document.getElementById("ciphertextInput").value = "";
       } catch (err) {
         alert(err);
@@ -195,7 +218,6 @@
       link.click();
     }
 
-    // Scan QR from uploaded image file
     function scanQR(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
@@ -220,8 +242,6 @@
       };
       reader.readAsDataURL(file);
     }
-
-    // --- Kamera scan ---
 
     let videoStream = null;
     let scanning = false;
@@ -285,7 +305,6 @@
       document.getElementById("stopScanBtn").style.display = "none";
     }
 
-    // Decrypt ciphertext (space separated) using d,n
     function decrypt() {
       const ciphertext = document
         .getElementById("ciphertextInput")
