@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RSA Encryption with QR Code</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 font-sans">
-  <div class="max-w-2xl mx-auto p-6 mt-8 bg-white rounded-xl shadow-md">
-    <h2 class="text-2xl font-bold mb-4 text-center">RSA Encryption & QR Code</h2>
+<body class="bg-gray-100 p-6 font-sans">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
+    <h2 class="text-2xl font-bold mb-4 text-center">🔐 RSA Encryption & QR Code Generator</h2>
 
-    <button onclick="generateKeys()" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Generate RSA Keys</button>
+    <div class="flex items-center justify-between mb-4">
+      <button onclick="generateKeys()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">🔄 Generate RSA Keys</button>
+      <label class="text-sm"><input type="checkbox" id="manualMode" onchange="toggleManualMode()"> Manual Input Mode</label>
+    </div>
 
     <div class="grid grid-cols-2 gap-4 mb-6">
       <div>
@@ -23,7 +26,7 @@
         <input type="text" id="q" class="w-full border px-2 py-1 rounded" readonly>
       </div>
       <div>
-        <label class="block text-sm">n (p*q):</label>
+        <label class="block text-sm">n (p × q):</label>
         <input type="text" id="n" class="w-full border px-2 py-1 rounded" readonly>
       </div>
       <div>
@@ -36,17 +39,21 @@
       </div>
     </div>
 
-    <label class="block text-sm mb-1">Plaintext (ID Surat):</label>
-    <input type="text" id="plaintext" value="SERTIFIKAT/012/24052025/IGUSTIAYUSRI_BIDANGPENGMAS" class="w-full border px-2 py-1 rounded mb-3">
-
-    <button onclick="encrypt()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 mb-4">Encrypt</button>
-
-    <label class="block text-sm mb-1">Ciphertext:</label>
-    <textarea id="ciphertext" rows="4" class="w-full border px-2 py-2 rounded mb-4" readonly></textarea>
-
-    <div class="text-center">
-      <div id="qrcode" class="inline-block p-2 bg-white rounded shadow-md"></div>
+    <div class="mb-4">
+      <label class="block text-sm">Plaintext (ID Surat):</label>
+      <input type="text" id="plaintext" class="w-full border px-2 py-1 rounded"
     </div>
+
+    <div class="mb-4">
+      <button onclick="encrypt()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">🔐 Encrypt</button>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm">Ciphertext:</label>
+      <textarea id="ciphertext" rows="4" class="w-full border px-2 py-1 rounded" readonly></textarea>
+    </div>
+
+    <div id="qrcode" class="text-center"></div>
   </div>
 
   <script>
@@ -69,10 +76,8 @@
     }
 
     function gcd(a, b) {
-      while (b != 0) {
-        let temp = b;
-        b = a % b;
-        a = temp;
+      while (b !== 0) {
+        [a, b] = [b, a % b];
       }
       return a;
     }
@@ -96,17 +101,22 @@
       while (gcd(e, phi) !== 1) e += 2;
       const d = modInverse(e, phi);
 
-      document.getElementById('p').value = p;
-      document.getElementById('q').value = q;
-      document.getElementById('n').value = n;
-      document.getElementById('e').value = e;
-      document.getElementById('d').value = d;
+      document.getElementById("p").value = p;
+      document.getElementById("q").value = q;
+      document.getElementById("n").value = n;
+      document.getElementById("e").value = e;
+      document.getElementById("d").value = d;
     }
 
     function encrypt() {
-      const plaintext = document.getElementById('plaintext').value;
-      const e = parseInt(document.getElementById('e').value);
-      const n = parseInt(document.getElementById('n').value);
+      const plaintext = document.getElementById("plaintext").value;
+      const e = parseInt(document.getElementById("e").value);
+      const n = parseInt(document.getElementById("n").value);
+
+      if (!e || !n) {
+        alert("Please generate or input valid RSA keys first.");
+        return;
+      }
 
       const encoded = [];
       for (let i = 0; i < plaintext.length; i++) {
@@ -114,11 +124,19 @@
         const c = BigInt(m) ** BigInt(e) % BigInt(n);
         encoded.push(c.toString());
       }
-      const ciphertext = encoded.join(' ');
-      document.getElementById('ciphertext').value = ciphertext;
 
-      QRCode.toCanvas(document.getElementById('qrcode'), ciphertext, function (error) {
+      const ciphertext = encoded.join(" ");
+      document.getElementById("ciphertext").value = ciphertext;
+
+      QRCode.toCanvas(document.getElementById("qrcode"), ciphertext, function (error) {
         if (error) console.error(error);
+      });
+    }
+
+    function toggleManualMode() {
+      const manual = document.getElementById("manualMode").checked;
+      ["p", "q", "n", "e", "d"].forEach(id => {
+        document.getElementById(id).readOnly = !manual;
       });
     }
   </script>
